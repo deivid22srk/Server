@@ -1,106 +1,1304 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<script type="text/javascript">
+  // This is a CodeSandbox injection script that's used to
+  // add navigation and inspector functionality to the preview
+  (function () {
+    // 1) Get the <script> tag that's currently running:
+    var me = document.currentScript;
+
+    // 2) Create the blocking‐style <script> to load:
+    var script = document.createElement("script");
+    script.src = "https://codesandbox.io/p/preview-protocol.js";
+
+    // By default a dynamically‐inserted <script> is async=true.
+    // Turn async off to make it behave like a normal blocking <script>:
+    script.async = false;
+    // (Do NOT set defer.)
+
+    // 3) Insert it immediately after the current <script>:
+    me.parentNode.insertBefore(script, me);
+  })();
+
+  const isIFramePreview = window.top !== window.self;
+
+  // Only run this script in editor context
+  if (isIFramePreview) {
+    // This script is used to enable Chrome DevTools functionality
+    (function () {
+      var script = document.createElement("script");
+      script.src =
+        "https://codesandbox.io/p/chrome-devtool/protocol/index.js";
+
+      script.onload = () => {
+        const devtoolProtocol = window.chobitsu;
+        if (devtoolProtocol) {
+          window.addEventListener("message", (event) => {
+            const { type, data } = event.data;
+
+            if (type === "FROM_DEVTOOL") {
+              devtoolProtocol.sendRawMessage(data);
+            }
+          });
+
+          devtoolProtocol.setOnMessage((data) => {
+            if (data.includes('"id":"tmp')) {
+              return;
+            }
+
+            window.parent.postMessage({ type: "TO_DEVTOOL", data }, "*");
+          });
+
+          devtoolProtocol.sendRawMessage(
+            `{"id":5,"method":"Runtime.enable","params":{}}`
+          );
+        }        
+      }
+
+      (document.head || document.documentElement).prepend(script);
+    })();
+  }
+
+  if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined") {
+    let nextID = 0;
+    let hook = (__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+      renderers: new Map(),
+      supportsFiber: true,
+      inject: (renderer) => {
+        const id = nextID++;
+        hook.renderers.set(id, renderer);
+        return id;
+      },
+      onScheduleFiberRoot() {},
+      onCommitFiberRoot() {},
+      onCommitFiberUnmount() {},
+    });
+  }
+
+  document.currentScript.remove();
+</script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Abrir Minecraft — fizanal.minekeep.gg:19132</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#f6f7fb;margin:0;padding:20px}
-    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 24px rgba(16,24,40,0.08);max-width:540px;width:100%}
-    h1{margin:0 0 8px;font-size:18px}
-    p{margin:6px 0 14px;color:#333}
-    .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;margin-right:8px;font-weight:600}
-    .btn-primary{background:#0b7ef7;color:#fff}
-    .btn-ghost{background:transparent;border:1px solid #e6e9ef}
-    .note{margin-top:14px;color:#555;font-size:13px}
-    .fallback{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border:1px solid #ffe8b5;font-size:13px}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #1a4d7a 0%, #2d5f8d 30%, #4a7ba7 60%, #87ceeb 100%);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background permanente */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .main-bg-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Splash Screen Minecraft */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #4a90e2 0%, #87ceeb 50%, #6b8e23 50%, #8b7355 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeOut 1s ease-in-out 3.5s forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+
+    /* Background animado estilo Minecraft */
+    .minecraft-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .floating-block {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: #8b7355;
+      border: 3px solid #6b5d4f;
+      box-shadow: inset -3px -3px 0 rgba(0,0,0,0.3), inset 3px 3px 0 rgba(255,255,255,0.2);
+      animation: float-down 8s linear infinite;
+      image-rendering: pixelated;
+    }
+
+    .floating-block::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(90deg, transparent 48%, rgba(0,0,0,0.2) 48%, rgba(0,0,0,0.2) 52%, transparent 52%),
+        linear-gradient(0deg, transparent 48%, rgba(0,0,0,0.2) 48%, rgba(0,0,0,0.2) 52%, transparent 52%);
+    }
+
+    .floating-block:nth-child(1) { left: 10%; animation-delay: 0s; background: #8b7355; }
+    .floating-block:nth-child(2) { left: 25%; animation-delay: 2s; background: #228b22; border-color: #1a6b1a; }
+    .floating-block:nth-child(3) { left: 45%; animation-delay: 4s; background: #708090; border-color: #556670; }
+    .floating-block:nth-child(4) { left: 65%; animation-delay: 1s; background: #8b7355; }
+    .floating-block:nth-child(5) { left: 80%; animation-delay: 3s; background: #654321; border-color: #4a3218; }
+    .floating-block:nth-child(6) { left: 35%; animation-delay: 5s; background: #228b22; border-color: #1a6b1a; }
+    .floating-block:nth-child(7) { left: 55%; animation-delay: 6s; background: #708090; border-color: #556670; }
+    .floating-block:nth-child(8) { left: 15%; animation-delay: 7s; background: #654321; border-color: #4a3218; }
+    .floating-block:nth-child(9) { left: 5%; animation-delay: 3.5s; background: #c41e3a; border-color: #8b1528; }
+    .floating-block:nth-child(10) { left: 90%; animation-delay: 5.5s; background: #0f8b4d; border-color: #0a5c33; }
+    .floating-block:nth-child(11) { left: 50%; animation-delay: 1.5s; background: #fff; border-color: #ccc; }
+    .floating-block:nth-child(12) { left: 72%; animation-delay: 4.5s; background: #ffd700; border-color: #b8960a; }
+
+    @keyframes float-down {
+      0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(calc(100vh + 100px)) rotate(180deg);
+        opacity: 0;
+      }
+    }
+
+    /* Logo hailGames */
+    .logo-container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      animation: zoomIn 1s ease-out;
+    }
+
+    @keyframes zoomIn {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .logo-text {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 48px;
+      background: linear-gradient(45deg, #fff, #ff6b6b, #4ecdc4, #ffe66d);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 2s ease-in-out infinite, gradient-shift 3s ease infinite;
+      text-shadow: 
+        4px 4px 0 #000,
+        -2px -2px 0 rgba(0,0,0,0.5),
+        0 6px 20px rgba(0,0,0,0.4);
+      filter: drop-shadow(4px 4px 0 #000) drop-shadow(0 6px 20px rgba(0,0,0,0.4));
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    .subtitle {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
+      color: #ffe66d;
+      text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 230, 109, 0.5);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    .subtitle::before {
+      content: '❄ ';
+    }
+
+    .subtitle::after {
+      content: ' ❄';
+    }
+
+    @keyframes blink {
+      0%, 49% {
+        opacity: 1;
+      }
+      50%, 100% {
+        opacity: 0.3;
+      }
+    }
+
+    /* Pixels decorativos */
+    .pixel {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      opacity: 0.8;
+      animation: twinkle 2s ease-in-out infinite;
+    }
+
+    .pixel:nth-child(9) { top: 20%; left: 20%; animation-delay: 0s; }
+    .pixel:nth-child(10) { top: 30%; left: 80%; animation-delay: 0.5s; }
+    .pixel:nth-child(11) { top: 70%; left: 15%; animation-delay: 1s; }
+    .pixel:nth-child(12) { top: 80%; left: 85%; animation-delay: 1.5s; }
+    .pixel:nth-child(13) { top: 15%; left: 50%; animation-delay: 0.3s; }
+    .pixel:nth-child(14) { top: 60%; left: 70%; animation-delay: 0.8s; }
+
+    @keyframes twinkle {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 0.3;
+      }
+    }
+
+    /* Flocos de neve natalinos */
+    .snowflake {
+      position: absolute;
+      color: #fff;
+      font-size: 1em;
+      top: -10%;
+      animation: snowfall linear infinite;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    @keyframes snowfall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* Enfeites natalinos pixelados */
+    .christmas-ornament {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      animation: swing 3s ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    }
+
+    .ornament-red {
+      background: radial-gradient(circle at 30% 30%, #ff6b6b, #c41e3a);
+      border-radius: 50%;
+      border: 3px solid #8b1528;
+    }
+
+    .ornament-green {
+      background: radial-gradient(circle at 30% 30%, #4ecdc4, #0f8b4d);
+      border-radius: 50%;
+      border: 3px solid #0a5c33;
+    }
+
+    .ornament-gold {
+      background: radial-gradient(circle at 30% 30%, #ffe66d, #ffd700);
+      border-radius: 50%;
+      border: 3px solid #b8960a;
+    }
+
+    .ornament-red::before,
+    .ornament-green::before,
+    .ornament-gold::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background: #666;
+      border-radius: 2px;
+    }
+
+    @keyframes swing {
+      0%, 100% {
+        transform: rotate(-5deg);
+      }
+      50% {
+        transform: rotate(5deg);
+      }
+    }
+
+    .christmas-ornament:nth-child(1) { top: 15%; left: 8%; animation-delay: 0s; }
+    .christmas-ornament:nth-child(2) { top: 25%; left: 85%; animation-delay: 0.5s; }
+    .christmas-ornament:nth-child(3) { top: 65%; left: 12%; animation-delay: 1s; }
+    .christmas-ornament:nth-child(4) { top: 75%; left: 88%; animation-delay: 1.5s; }
+    .christmas-ornament:nth-child(5) { top: 45%; left: 5%; animation-delay: 0.8s; }
+    .christmas-ornament:nth-child(6) { top: 35%; left: 92%; animation-delay: 1.2s; }
+
+    /* Conteúdo principal */
+    #main-content {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      animation: fadeIn 1s ease-in-out 3.5s forwards;
+      position: relative;
+      z-index: 10;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(16, 24, 40, 0.08), 0 0 0 3px rgba(196, 30, 58, 0.3);
+      max-width: 540px;
+      width: 100%;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      font-weight: bold;
+    }
+
+    .close-btn:hover {
+      transform: rotate(90deg) scale(1.1);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 6px 0 14px;
+      color: #333;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 0;
+      cursor: pointer;
+      margin-right: 8px;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #0b7ef7;
+      color: #fff;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #e6e9ef;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .fallback {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff8e6;
+      border: 1px solid #ffe8b5;
+      font-size: 13px;
+    }
+
+    /* Portal Space-Time Animation */
+    #portal-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+    }
+
+    #portal-animation.active {
+      display: flex;
+      animation: portalFadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes portalFadeIn {
+      to { opacity: 1; }
+    }
+
+    .portal-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    .portal {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, 
+        transparent 0%, 
+        transparent 30%,
+        rgba(102, 126, 234, 0.3) 40%,
+        rgba(118, 75, 162, 0.5) 50%,
+        rgba(102, 126, 234, 0.7) 60%,
+        rgba(118, 75, 162, 0.9) 70%,
+        #764ba2 100%);
+      animation: portalSpin 2s linear infinite, portalPulse 1.5s ease-in-out infinite;
+      box-shadow: 
+        0 0 50px rgba(102, 126, 234, 0.8),
+        0 0 100px rgba(118, 75, 162, 0.6),
+        inset 0 0 50px rgba(102, 126, 234, 0.5);
+    }
+
+    @keyframes portalSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes portalPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .portal-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Press Start 2P', cursive;
+      font-size: 16px;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(102, 126, 234, 0.8);
+      text-align: center;
+      animation: textGlow 1s ease-in-out infinite;
+      z-index: 10;
+    }
+
+    @keyframes textGlow {
+      0%, 100% { text-shadow: 0 0 10px rgba(102, 126, 234, 0.8); }
+      50% { text-shadow: 0 0 20px rgba(102, 126, 234, 1), 0 0 30px rgba(118, 75, 162, 0.8); }
+    }
+
+    /* Game Container */
+    #game-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%);
+      display: none;
+      z-index: 9999;
+      flex-direction: column;
+    }
+
+    #game-container.active {
+      display: flex;
+    }
+
+    #game-canvas {
+      display: block;
+      background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 50%, #90ee90 50%, #7cb77c 100%);
+    }
+
+    .game-ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
+      color: #fff;
+      text-shadow: 2px 2px 0 #000;
+      z-index: 10;
+      line-height: 1.8;
+    }
+
+    .fuel-bar-container {
+      width: 200px;
+      height: 25px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 3px solid #fff;
+      border-radius: 5px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .fuel-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4ecdc4 0%, #0f8b4d 100%);
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    .fuel-bar.low {
+      background: linear-gradient(90deg, #ff6b6b 0%, #c41e3a 100%);
+      animation: fuelWarning 0.5s ease-in-out infinite;
+    }
+
+    @keyframes fuelWarning {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .game-controls {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .game-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.2);
+      transition: transform 0.1s;
+      color: #fff;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+      user-select: none;
+    }
+
+    .game-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .btn-brake {
+      background: linear-gradient(135deg, #ff6b6b 0%, #c41e3a 100%);
+    }
+
+    .btn-gas {
+      background: linear-gradient(135deg, #4ecdc4 0%, #0f8b4d 100%);
+    }
+
+    .game-over-screen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      display: none;
+      z-index: 20;
+      border: 4px solid #ffd700;
+    }
+
+    .game-over-screen.active {
+      display: block;
+      animation: popIn 0.3s ease-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: translate(-50%, -50%) scale(0.5); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .game-over-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 32px;
+      color: #ff6b6b;
+      text-shadow: 3px 3px 0 #000;
+      margin-bottom: 20px;
+    }
+
+    .game-over-stats {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 16px;
+      color: #fff;
+      text-shadow: 2px 2px 0 #000;
+      margin-bottom: 30px;
+    }
+
+    .restart-btn {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 16px;
+      padding: 15px 30px;
+      background: linear-gradient(135deg, #4ecdc4 0%, #0f8b4d 100%);
+      color: #fff;
+      border: 4px solid #fff;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+    }
+
+    .restart-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    }
+
+    /* Responsivo */
+    @media (max-width: 600px) {
+      .logo-text {
+        font-size: 28px;
+      }
+      .subtitle {
+        font-size: 10px;
+      }
+      .floating-block {
+        width: 40px;
+        height: 40px;
+      }
+      .game-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 10px;
+      }
+      .game-ui {
+        font-size: 10px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="card" role="main">
-    <h1>Abrir Minecraft no servidor</h1>
-    <p><strong>Servidor:</strong> <code>fizanal.minekeep.gg</code> <strong>Porta:</strong> <code>19132</code></p>
+  <!-- Background permanente -->
+  <div class="main-bg-container">
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    <div class="floating-block"></div>
+    
+    <div class="christmas-ornament ornament-red"></div>
+    <div class="christmas-ornament ornament-green"></div>
+    <div class="christmas-ornament ornament-gold"></div>
+    <div class="christmas-ornament ornament-red"></div>
+    <div class="christmas-ornament ornament-green"></div>
+    <div class="christmas-ornament ornament-gold"></div>
+  </div>
 
-    <div>
-      <!-- Bedrock URI (formato conhecido: ?addExternalServer=Nome|ip:port) -->
-      <button class="btn btn-primary" id="open-bedrock">Abrir (Bedrock)</button>
-
-      <!-- Java URI (não oficial em todas as plataformas; alguns launchers aceitam) -->
-      <button class="btn btn-ghost" id="open-java">Abrir (Java / Launcher)</button>
+  <!-- Splash Screen -->
+  <div id="splash-screen">
+    <div class="minecraft-bg">
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="floating-block"></div>
+      <div class="pixel"></div>
+      <div class="pixel"></div>
+      <div class="pixel"></div>
+      <div class="pixel"></div>
+      <div class="pixel"></div>
+      <div class="pixel"></div>
     </div>
-
-    <div class="note">
-      Dica: se nada acontecer, o navegador provavelmente bloqueou a abertura do protocolo. Veja os passos rápidos abaixo.
+    <div class="logo-container">
+      <div class="logo-text">hailGames</div>
+      <div class="subtitle">Press Start</div>
     </div>
+  </div>
 
-    <div class="fallback" id="fallback" style="display:none">
-      <strong>Fallback / instruções:</strong>
-      <ul>
-        <li>Confirme que o Minecraft está instalado no dispositivo.</li>
-        <li>Para <strong>Bedrock</strong> (PC, Android, iOS) — abra o Minecraft → Jogar → Servidores Externos → Adicionar servidor, coloque:
-          <br><code>Nome: hailhz</code> · <code>Endereço: fizanal.minekeep.gg</code> · <code>Porta: 19132</code>
-        </li>
-        <li>Para <strong>Java</strong> (PC) — abra o Launcher do Minecraft → Multiplayer → Add Server → endereço: <code>fizanal.minekeep.gg:19132</code></li>
-      </ul>
+  <!-- Conteúdo Principal -->
+  <div id="main-content">
+    <div class="card" role="main">
+      <button class="close-btn" id="close-btn" title="Entrar no portal">×</button>
+      <h1>Abrir Minecraft no servidor</h1>
+      <p><strong>Servidor:</strong> <code>fizanal.minekeep.gg</code> <strong>Porta:</strong> <code>19132</code></p>
+
+      <div>
+        <button class="btn btn-primary" id="open-bedrock">Abrir (Bedrock)</button>
+        <button class="btn btn-ghost" id="open-java">Abrir (Java / Launcher)</button>
+      </div>
+
+      <div class="note">
+        Dica: se nada acontecer, o navegador provavelmente bloqueou a abertura do protocolo. Veja os passos rápidos abaixo.
+      </div>
+
+      <div class="fallback" id="fallback" style="display:none">
+        <strong>Fallback / instruções:</strong>
+        <ul>
+          <li>Confirme que o Minecraft está instalado no dispositivo.</li>
+          <li>Para <strong>Bedrock</strong> (PC, Android, iOS) — abra o Minecraft → Jogar → Servidores Externos → Adicionar servidor, coloque:
+            <br><code>Nome: hailhz</code> · <code>Endereço: fizanal.minekeep.gg</code> · <code>Porta: 19132</code>
+          </li>
+          <li>Para <strong>Java</strong> (PC) — abra o Launcher do Minecraft → Multiplayer → Add Server → endereço: <code>fizanal.minekeep.gg:19132</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portal Animation -->
+  <div id="portal-animation">
+    <div class="portal-container">
+      <div class="portal"></div>
+      <div class="portal-text">ENTRANDO NO<br>ESPAÇO-TEMPO</div>
+    </div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div class="game-ui">
+      <div>Distância: <span id="distance">0</span>m</div>
+      <div>Moedas: <span id="coins">0</span></div>
+      <div style="margin-top: 5px;">Combustível:</div>
+      <div class="fuel-bar-container">
+        <div class="fuel-bar" id="fuel-bar" style="width: 100%;"></div>
+      </div>
+    </div>
+    <div class="game-controls">
+      <button class="game-btn btn-brake" id="btn-brake">◀<br>FREIO</button>
+      <button class="game-btn btn-gas" id="btn-gas">▶<br>GÁS</button>
+    </div>
+    <div class="game-over-screen" id="game-over">
+      <div class="game-over-title">GAME OVER</div>
+      <div class="game-over-stats">
+        <div>Distância: <span id="final-distance">0</span>m</div>
+        <div>Moedas: <span id="final-coins">0</span></div>
+      </div>
+      <button class="restart-btn" id="restart-btn">REINICIAR</button>
     </div>
   </div>
 
   <script>
-    // Links gerados:
-    // Bedrock: usa o esquema sugerido ?addExternalServer=Nome|ip:port
+    // Gerar flocos de neve
+    function createSnowflakes() {
+      const container = document.querySelector('.main-bg-container');
+      const snowflakeSymbols = ['❄', '❅', '❆'];
+      
+      for (let i = 0; i < 30; i++) {
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = snowflakeSymbols[Math.floor(Math.random() * snowflakeSymbols.length)];
+        snowflake.style.left = Math.random() * 100 + '%';
+        snowflake.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        snowflake.style.animationDelay = Math.random() * 5 + 's';
+        snowflake.style.fontSize = (Math.random() * 1.5 + 0.5) + 'em';
+        container.appendChild(snowflake);
+      }
+    }
+
+    createSnowflakes();
+
+    // Minecraft server launcher
     const bedrockName = encodeURIComponent("hailhz");
     const bedrockHost = "fizanal.minekeep.gg:19132";
     const bedrockUri = `minecraft://?addExternalServer=${bedrockName}|${bedrockHost}`;
 
-    // Java: tentativa comum de esquema (alguns launchers registram "minecraft://host:port")
-    const javaUri1 = `minecraft://${"fizanal.minekeep.gg:19132"}`;
-    // alternativa (alguns sugerem caminho connect)
-    const javaUri2 = `minecraft://connect/${"fizanal.minekeep.gg:19132"}`;
+    const javaUri1 = `minecraft://fizanal.minekeep.gg:19132`;
+    const javaUri2 = `minecraft://connect/fizanal.minekeep.gg:19132`;
 
-    // função que tenta abrir e detecta falha simples (com timeout)
     function tryOpen(uri) {
-      // cria iframe (técnica comum), registra tempo; muitos navegadores bloqueiam se não for interação do usuário
       const timeout = 1200;
       let opened = false;
-      // criação de timer de fallback
       const t = setTimeout(() => {
         if (!opened) {
           document.getElementById('fallback').style.display = 'block';
         }
       }, timeout);
 
-      // método: tentar abrir via window.location (alguns navegadores exigem ser click direto)
       try {
         window.location = uri;
         opened = true;
         clearTimeout(t);
       } catch (e) {
-        // fallback: tentar iframe
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
-        iframe.onload = function(){ opened = true; clearTimeout(t); };
+        iframe.onload = function() {
+          opened = true;
+          clearTimeout(t);
+        };
         document.body.appendChild(iframe);
         try {
           iframe.src = uri;
-        } catch (err) {
-          // nada
-        }
-        // limpar iframe após um tempo
-        setTimeout(()=> {
-          try{ document.body.removeChild(iframe);}catch(e){}
+        } catch (err) {}
+        setTimeout(() => {
+          try {
+            document.body.removeChild(iframe);
+          } catch (e) {}
         }, timeout + 300);
       }
     }
 
-    document.getElementById('open-bedrock').addEventListener('click', function(){
+    document.getElementById('open-bedrock').addEventListener('click', function() {
       tryOpen(bedrockUri);
     });
 
-    document.getElementById('open-java').addEventListener('click', function(){
-      // tenta duas variações para Java
+    document.getElementById('open-java').addEventListener('click', function() {
       tryOpen(javaUri1);
-      // pequena espera e tenta alternativa
-      setTimeout(()=> tryOpen(javaUri2), 300);
+      setTimeout(() => tryOpen(javaUri2), 300);
+    });
+
+    // Portal and Game
+    document.getElementById('close-btn').addEventListener('click', function() {
+      const portal = document.getElementById('portal-animation');
+      portal.classList.add('active');
+      
+      setTimeout(() => {
+        portal.classList.remove('active');
+        document.getElementById('game-container').classList.add('active');
+        initGame();
+      }, 2500);
+    });
+
+    // Hill Climb Racing Game
+    let canvas, ctx;
+    let game = {
+      running: false,
+      distance: 0,
+      fuel: 100,
+      coins: 0,
+      speed: 0,
+      car: {
+        x: 200,
+        y: 300,
+        width: 80,
+        height: 40,
+        rotation: 0,
+        rotationSpeed: 0,
+        wheels: [
+          { x: -25, y: 20, radius: 15, rotation: 0 },
+          { x: 25, y: 20, radius: 15, rotation: 0 }
+        ]
+      },
+      terrain: [],
+      coinsList: [],
+      fuelItems: [],
+      keys: { gas: false, brake: false },
+      cameraX: 0,
+      lastTerrainX: 0,
+      lastTerrainY: 0
+    };
+
+    function initGame() {
+      canvas = document.getElementById('game-canvas');
+      ctx = canvas.getContext('2d');
+      
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      generateTerrain();
+      generateCoins();
+      
+      game.running = true;
+      game.distance = 0;
+      game.fuel = 100;
+      game.coins = 0;
+      game.speed = 0;
+      game.car.x = 200;
+      game.car.y = 300;
+      game.car.rotation = 0;
+      game.cameraX = 0;
+      game.keys.gas = false;
+      game.keys.brake = false;
+
+      gameLoop();
+    }
+
+    function generateTerrain() {
+      game.terrain = [];
+      game.lastTerrainX = 0;
+      game.lastTerrainY = canvas.height * 0.6;
+      
+      for (let i = 0; i < 50; i++) {
+        addTerrainSegment();
+      }
+    }
+
+    function addTerrainSegment() {
+      game.terrain.push({ x: game.lastTerrainX, y: game.lastTerrainY });
+      game.lastTerrainX += 50;
+      game.lastTerrainY += (Math.random() - 0.5) * 80;
+      game.lastTerrainY = Math.max(canvas.height * 0.3, Math.min(canvas.height * 0.8, game.lastTerrainY));
+    }
+
+    function updateTerrain() {
+      while (game.terrain[game.terrain.length - 1].x < game.car.x + canvas.width) {
+        addTerrainSegment();
+        
+        if (Math.random() < 0.1) {
+          const lastPoint = game.terrain[game.terrain.length - 1];
+          game.coinsList.push({
+            x: lastPoint.x,
+            y: lastPoint.y - 50,
+            radius: 15,
+            collected: false,
+            type: 'coin'
+          });
+        }
+        
+        if (Math.random() < 0.05) {
+          const lastPoint = game.terrain[game.terrain.length - 1];
+          game.fuelItems.push({
+            x: lastPoint.x,
+            y: lastPoint.y - 60,
+            width: 30,
+            height: 40,
+            collected: false
+          });
+        }
+      }
+      
+      while (game.terrain.length > 0 && game.terrain[0].x < game.car.x - canvas.width) {
+        game.terrain.shift();
+      }
+      
+      game.coinsList = game.coinsList.filter(coin => !coin.collected && coin.x > game.car.x - canvas.width);
+      game.fuelItems = game.fuelItems.filter(fuel => !fuel.collected && fuel.x > game.car.x - canvas.width);
+    }
+
+    function generateCoins() {
+      game.coinsList = [];
+      game.fuelItems = [];
+    }
+
+    function gameLoop() {
+      if (!game.running) return;
+
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+      updateTerrain();
+      
+      if (game.keys.gas && game.fuel > 0) {
+        game.speed += 0.3;
+        game.fuel -= 0.08;
+        game.car.wheels.forEach(wheel => wheel.rotation += 0.15);
+      }
+      
+      if (game.keys.brake) {
+        game.speed -= 0.2;
+      }
+
+      game.speed *= 0.98;
+      game.speed = Math.max(-3, Math.min(8, game.speed));
+
+      game.car.x += game.speed;
+      game.cameraX = game.car.x - 200;
+
+      const carBottomPoints = [
+        { x: game.car.x - 25, y: game.car.y + 20 },
+        { x: game.car.x + 25, y: game.car.y + 20 }
+      ];
+
+      let groundY = getTerrainHeight(game.car.x);
+      let targetRotation = 0;
+
+      const frontY = getTerrainHeight(game.car.x + 30);
+      const backY = getTerrainHeight(game.car.x - 30);
+      targetRotation = Math.atan2(frontY - backY, 60);
+
+      game.car.rotation += (targetRotation - game.car.rotation) * 0.1;
+
+      if (game.car.y + 20 < groundY) {
+        game.car.y += 2;
+      } else {
+        game.car.y = groundY - 20;
+      }
+
+      if (Math.abs(game.car.rotation) > Math.PI / 3 || game.fuel <= 0) {
+        gameOver();
+      }
+
+      game.coinsList.forEach(coin => {
+        if (!coin.collected) {
+          const dist = Math.sqrt(
+            Math.pow(coin.x - game.car.x, 2) + 
+            Math.pow(coin.y - game.car.y, 2)
+          );
+          if (dist < 35) {
+            coin.collected = true;
+            game.coins++;
+          }
+        }
+      });
+      
+      game.fuelItems.forEach(fuel => {
+        if (!fuel.collected) {
+          const dist = Math.sqrt(
+            Math.pow(fuel.x - game.car.x, 2) + 
+            Math.pow(fuel.y - game.car.y, 2)
+          );
+          if (dist < 40) {
+            fuel.collected = true;
+            game.fuel = Math.min(100, game.fuel + 30);
+          }
+        }
+      });
+
+      game.distance = Math.max(game.distance, Math.floor(game.car.x / 10));
+
+      document.getElementById('distance').textContent = game.distance;
+      document.getElementById('coins').textContent = game.coins;
+      
+      const fuelBar = document.getElementById('fuel-bar');
+      const fuelPercent = Math.max(0, game.fuel);
+      fuelBar.style.width = fuelPercent + '%';
+      
+      if (fuelPercent < 30) {
+        fuelBar.classList.add('low');
+      } else {
+        fuelBar.classList.remove('low');
+      }
+    }
+
+    function getTerrainHeight(x) {
+      for (let i = 0; i < game.terrain.length - 1; i++) {
+        if (x >= game.terrain[i].x && x <= game.terrain[i + 1].x) {
+          const t = (x - game.terrain[i].x) / (game.terrain[i + 1].x - game.terrain[i].x);
+          return game.terrain[i].y + (game.terrain[i + 1].y - game.terrain[i].y) * t;
+        }
+      }
+      return canvas.height * 0.6;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#87ceeb');
+      gradient.addColorStop(0.5, '#e0f6ff');
+      gradient.addColorStop(0.5, '#90ee90');
+      gradient.addColorStop(1, '#7cb77c');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(-game.cameraX, 0);
+
+      ctx.beginPath();
+      ctx.moveTo(game.terrain[0].x, canvas.height);
+      game.terrain.forEach(point => {
+        ctx.lineTo(point.x, point.y);
+      });
+      ctx.lineTo(game.terrain[game.terrain.length - 1].x, canvas.height);
+      ctx.closePath();
+      ctx.fillStyle = '#654321';
+      ctx.fill();
+      ctx.strokeStyle = '#4a3218';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      game.coinsList.forEach(coin => {
+        if (!coin.collected) {
+          ctx.beginPath();
+          ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffd700';
+          ctx.fill();
+          ctx.strokeStyle = '#b8960a';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('$', coin.x, coin.y);
+        }
+      });
+
+      game.fuelItems.forEach(fuel => {
+        if (!fuel.collected) {
+          const canX = fuel.x - fuel.width / 2;
+          const canY = fuel.y - fuel.height;
+          
+          ctx.fillStyle = '#c41e3a';
+          ctx.fillRect(canX, canY, fuel.width, fuel.height);
+          
+          ctx.fillStyle = '#ff6b6b';
+          ctx.fillRect(canX + 5, canY + 5, fuel.width - 10, fuel.height - 10);
+          
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(canX + fuel.width / 2 - 8, canY - 5, 16, 5);
+          
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('⛽', fuel.x, fuel.y - fuel.height / 2);
+        }
+      });
+
+      ctx.save();
+      ctx.translate(game.car.x, game.car.y);
+      ctx.rotate(game.car.rotation);
+
+      ctx.fillStyle = '#c41e3a';
+      ctx.fillRect(-40, -20, 80, 40);
+      ctx.fillStyle = '#8b1528';
+      ctx.fillRect(-30, -20, 30, 20);
+
+      ctx.fillStyle = '#87ceeb';
+      ctx.fillRect(-20, -30, 30, 15);
+
+      game.car.wheels.forEach(wheel => {
+        ctx.save();
+        ctx.translate(wheel.x, wheel.y);
+        ctx.rotate(wheel.rotation);
+        ctx.beginPath();
+        ctx.arc(0, 0, wheel.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#333';
+        ctx.fill();
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.strokeStyle = '#777';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(wheel.radius, 0);
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function gameOver() {
+      game.running = false;
+      document.getElementById('final-distance').textContent = game.distance;
+      document.getElementById('final-coins').textContent = game.coins;
+      document.getElementById('game-over').classList.add('active');
+    }
+
+    const btnBrake = document.getElementById('btn-brake');
+    const btnGas = document.getElementById('btn-gas');
+
+    btnBrake.addEventListener('mousedown', () => game.keys.brake = true);
+    btnBrake.addEventListener('mouseup', () => game.keys.brake = false);
+    btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); game.keys.brake = true; });
+    btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); game.keys.brake = false; });
+
+    btnGas.addEventListener('mousedown', () => game.keys.gas = true);
+    btnGas.addEventListener('mouseup', () => game.keys.gas = false);
+    btnGas.addEventListener('touchstart', (e) => { e.preventDefault(); game.keys.gas = true; });
+    btnGas.addEventListener('touchend', (e) => { e.preventDefault(); game.keys.gas = false; });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') game.keys.brake = true;
+      if (e.key === 'ArrowRight') game.keys.gas = true;
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') game.keys.brake = false;
+      if (e.key === 'ArrowRight') game.keys.gas = false;
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      document.getElementById('game-over').classList.remove('active');
+      initGame();
+    });
+
+    window.addEventListener('resize', () => {
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
     });
   </script>
 </body>
