@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Abrir Minecraft — fizanal.minekeep.gg:19132</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#f6f7fb;margin:0;padding:20px}
+    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 24px rgba(16,24,40,0.08);max-width:540px;width:100%}
+    h1{margin:0 0 8px;font-size:18px}
+    p{margin:6px 0 14px;color:#333}
+    .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;margin-right:8px;font-weight:600}
+    .btn-primary{background:#0b7ef7;color:#fff}
+    .btn-ghost{background:transparent;border:1px solid #e6e9ef}
+    .note{margin-top:14px;color:#555;font-size:13px}
+    .fallback{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border:1px solid #ffe8b5;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>Abrir Minecraft no servidor</h1>
+    <p><strong>Servidor:</strong> <code>fizanal.minekeep.gg</code> <strong>Porta:</strong> <code>19132</code></p>
+
+    <div>
+      <!-- Bedrock URI (formato conhecido: ?addExternalServer=Nome|ip:port) -->
+      <button class="btn btn-primary" id="open-bedrock">Abrir (Bedrock)</button>
+
+      <!-- Java URI (não oficial em todas as plataformas; alguns launchers aceitam) -->
+      <button class="btn btn-ghost" id="open-java">Abrir (Java / Launcher)</button>
+    </div>
+
+    <div class="note">
+      Dica: se nada acontecer, o navegador provavelmente bloqueou a abertura do protocolo. Veja os passos rápidos abaixo.
+    </div>
+
+    <div class="fallback" id="fallback" style="display:none">
+      <strong>Fallback / instruções:</strong>
+      <ul>
+        <li>Confirme que o Minecraft está instalado no dispositivo.</li>
+        <li>Para <strong>Bedrock</strong> (PC, Android, iOS) — abra o Minecraft → Jogar → Servidores Externos → Adicionar servidor, coloque:
+          <br><code>Nome: hailhz</code> · <code>Endereço: fizanal.minekeep.gg</code> · <code>Porta: 19132</code>
+        </li>
+        <li>Para <strong>Java</strong> (PC) — abra o Launcher do Minecraft → Multiplayer → Add Server → endereço: <code>fizanal.minekeep.gg:19132</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Links gerados:
+    // Bedrock: usa o esquema sugerido ?addExternalServer=Nome|ip:port
+    const bedrockName = encodeURIComponent("hailhz");
+    const bedrockHost = "fizanal.minekeep.gg:19132";
+    const bedrockUri = `minecraft://?addExternalServer=${bedrockName}|${bedrockHost}`;
+
+    // Java: tentativa comum de esquema (alguns launchers registram "minecraft://host:port")
+    const javaUri1 = `minecraft://${"fizanal.minekeep.gg:19132"}`;
+    // alternativa (alguns sugerem caminho connect)
+    const javaUri2 = `minecraft://connect/${"fizanal.minekeep.gg:19132"}`;
+
+    // função que tenta abrir e detecta falha simples (com timeout)
+    function tryOpen(uri) {
+      // cria iframe (técnica comum), registra tempo; muitos navegadores bloqueiam se não for interação do usuário
+      const timeout = 1200;
+      let opened = false;
+      // criação de timer de fallback
+      const t = setTimeout(() => {
+        if (!opened) {
+          document.getElementById('fallback').style.display = 'block';
+        }
+      }, timeout);
+
+      // método: tentar abrir via window.location (alguns navegadores exigem ser click direto)
+      try {
+        window.location = uri;
+        opened = true;
+        clearTimeout(t);
+      } catch (e) {
+        // fallback: tentar iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.onload = function(){ opened = true; clearTimeout(t); };
+        document.body.appendChild(iframe);
+        try {
+          iframe.src = uri;
+        } catch (err) {
+          // nada
+        }
+        // limpar iframe após um tempo
+        setTimeout(()=> {
+          try{ document.body.removeChild(iframe);}catch(e){}
+        }, timeout + 300);
+      }
+    }
+
+    document.getElementById('open-bedrock').addEventListener('click', function(){
+      tryOpen(bedrockUri);
+    });
+
+    document.getElementById('open-java').addEventListener('click', function(){
+      // tenta duas variações para Java
+      tryOpen(javaUri1);
+      // pequena espera e tenta alternativa
+      setTimeout(()=> tryOpen(javaUri2), 300);
+    });
+  </script>
+</body>
+</html>
